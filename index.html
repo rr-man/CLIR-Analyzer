@@ -311,6 +311,16 @@ function parse(t) {
   r.dialNum = dialM ? dialM[2] : null;
   r.dialTrunk = dialM ? dialM[3] : null;
   r.dialOpts = dialM && dialM[4] ? dialM[4].replace(/^,*/, '') : (dialM ? '' : null);
+  // --- Voicemail termination detection ---
+  // The call ends in voicemail if the VoiceMail app runs, a vm context is entered,
+  // or the dial falls through to a mailbox (e.g. exec VoiceMail 229@default,u).
+  const vmExec = t.match(/exec\s+VoiceMail(?:Main)?\s+([^\t\r\n]+)/i);
+  r.vmMailbox = vmExec ? vmExec[1].trim().replace(/,.*$/, '') : null;
+  r.vmGreeting = /exec\s+VoiceMail\s+\S+,\s*[busU]/i.test(t) ? (/,[^\t]*u/i.test(vmExec ? vmExec[0] : '') ? 'unavailable' : (/,[^\t]*b/i.test(vmExec ? vmExec[0] : '') ? 'busy' : null)) : null;
+  r.toVoicemail = !!vmExec
+    || /Message-Exchange|VMMAIN|vm-(?:intro|theperson|isunavail)|voicemail/i.test(t)
+    || /Dial[^\t\r\n]*@voicemail/i.test(t)
+    || /exec\s+Voicemail/i.test(t);
   const times = [...t.matchAll(/^(\d{2}:\d{2}:\d{2})/gm)].map(m => m[1]);
   r.startT = times[0] || null;
   r.endT = times.length > 1 ? times[times.length - 1] : null;
@@ -446,6 +456,7 @@ function render(r) {
   if (r.klass) h += '<span class="badge ' + r.klass.tone + '">' + esc(r.klass.label) + '</span>';
   if (r.isPrivateIp === false) h += '<span class="badge warn">Remote endpoint</span>';
   if (r.attXfer || r.blindXfer) h += '<span class="badge warn">Transfer leg</span>';
+  if (r.toVoicemail) h += '<span class="badge warn">✉ To voicemail</span>';
   h += '</div>';
 
   const callerMetric = inbound
@@ -504,6 +515,7 @@ function render(r) {
       + row('Dial target', r.dialTech && r.dialNum ? '<span class="mono">' + esc(r.dialTech + '/' + r.dialNum + (r.dialTrunk ? '@' + r.dialTrunk : '')) + '</span>' : null)
       + row('Route', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null)
       + row('DID database', r.didMatch ? 'Matched' : 'Not matched', 'mutetx')
+      + row('Terminated to', r.toVoicemail ? '<span class="warntx">✉ Voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : '') + '</span>' : 'Live answer / extension', r.toVoicemail ? '' : 'mutetx')
       + row('Answer status', r.dialstatus ? esc(r.dialstatus) : null, r.dialstatus === 'ANSWER' ? 'good' : 'warntx')
       + row('Answered time', r.ansTime ? esc(fmtDur(r.ansTime)) : null))
     : card('B-leg · Callee (external)',
@@ -514,6 +526,7 @@ function render(r) {
       + row('Dial target', r.dialTech && r.dialNum ? '<span class="mono">' + esc(r.dialTech + '/' + r.dialNum + '@' + (r.dialTrunk || '')) + '</span>' : null)
       + row('Route', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null)
       + row('CNAM shown to callee', 'Resolved by terminating carrier', 'mutetx')
+      + row('Terminated to', r.toVoicemail ? '<span class="warntx">✉ Voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : '') + '</span>' : 'Far-end answer', r.toVoicemail ? '' : 'mutetx')
       + row('Answer status', r.dialstatus ? esc(r.dialstatus) : null, r.dialstatus === 'ANSWER' ? 'good' : 'warntx')
       + row('Answered time', r.ansTime ? esc(fmtDur(r.ansTime)) : null)
       + row('Bill / rating', r.bill !== null ? '$' + esc(r.bill) + (r.ratingDur ? ' · ' + esc(r.ratingDur) + 's' : '') : null));
@@ -598,11 +611,6 @@ function render(r) {
       + row('Loaded', r.opTimesLoaded ? 'Yes' : 'No', r.opTimesLoaded ? '' : 'mutetx')
       + row('Applied', enabled ? '<span class="good">Yes</span>' : 'No (skipped)', enabled ? '' : 'mutetx')
       + row('Open / closed', r.opTimesStatus ? esc(r.opTimesStatus.charAt(0).toUpperCase() + r.opTimesStatus.slice(1)) : 'Not indicated in trace', r.opTimesStatus ? '' : 'mutetx'));
-    h += card('Where hours can apply',
-        row('Server (default)', r.opTimesLevel === 'Server (default)' ? '<span class="good">◉ this call</span>' : 'Available', r.opTimesLevel === 'Server (default)' ? '' : 'mutetx')
-      + row('DID level', r.opTimesLevel === 'DID' ? '<span class="good">◉ this call</span>' : 'Available', r.opTimesLevel === 'DID' ? '' : 'mutetx')
-      + row('IVR level', r.opTimesLevel === 'IVR' ? '<span class="good">◉ this call</span>' : 'Available', r.opTimesLevel === 'IVR' ? '' : 'mutetx')
-      + row('Queue level', r.opTimesLevel === 'Queue' ? '<span class="good">◉ this call</span>' : 'Available', r.opTimesLevel === 'Queue' ? '' : 'mutetx'));
     h += '</div>';
   }
 
