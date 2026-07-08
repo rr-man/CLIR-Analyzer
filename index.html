@@ -112,6 +112,44 @@ footer a { color: var(--signal); }
 .credit a:hover { text-decoration: underline; }
 .credit .li-icon { width: 18px; height: 18px; display: block; flex-shrink: 0; }
 .foot-note { font-size: 12.5px; color: var(--ink-mute); }
+
+/* ---- Timeline call-detail view ---- */
+.view-tabs { display: flex; gap: 4px; margin: 0 0 14px; background: var(--paper); padding: 4px; border-radius: 10px; border: 1px solid var(--line); width: fit-content; }
+.view-tabs button { padding: 6px 16px; font-size: 13px; border: none; background: transparent; border-radius: 7px; color: var(--ink-soft); }
+.view-tabs button[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.tl3 { display: grid; grid-template-columns: 260px 1fr 300px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .tl3 { grid-template-columns: 1fr; } }
+.tl3 .col { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.tl3 .col h3 { font-size: 15px; font-weight: 600; margin: 0 0 14px; color: var(--ink); }
+.tl3 .col h3 .chev { color: var(--ink-mute); margin-right: 6px; font-size: 12px; }
+.basic-field { margin-bottom: 13px; }
+.basic-field .bl { font-size: 12px; color: var(--ink-mute); margin-bottom: 2px; }
+.basic-field .bv { font-size: 14px; color: var(--ink); word-break: break-word; }
+.chip { display: inline-flex; align-items: center; gap: 7px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px 3px 3px; font-size: 13.5px; }
+.chip .dot { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0; }
+.chip .dot.p { background: #7a8899; }
+.chip .dot.e { background: #e08a3c; }
+.sect-divide { border-top: 1px solid var(--line); margin: 16px 0; }
+.tl-leg { font-size: 14px; font-weight: 700; margin: 0 0 12px; color: var(--ink); }
+.tl-event { display: grid; grid-template-columns: 34px 46px 1fr; gap: 8px; position: relative; padding-bottom: 20px; }
+.tl-event:not(:last-child)::before { content: ''; position: absolute; left: 16px; top: 30px; bottom: 0; width: 2px; background: var(--line); }
+.tl-ico { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; z-index: 1; }
+.tl-ico.dial { background: var(--signal-bg); color: var(--signal); }
+.tl-ico.try { background: var(--paper); border: 2px solid var(--signal); color: var(--signal); }
+.tl-ico.ans { background: var(--wire-bg); color: var(--wire); }
+.tl-ico.vm { background: var(--amber-bg); color: var(--amber); }
+.tl-ico.hang { background: var(--alert-bg); color: var(--alert); }
+.tl-time { font-size: 13px; color: var(--ink-mute); padding-top: 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.tl-body { padding-top: 6px; }
+.tl-body .t1 { font-size: 14px; color: var(--ink); font-weight: 500; }
+.tl-body .t2 { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+.tl-ended { font-size: 14px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+.cbd-metrics { display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.cbd-metrics .m .l { font-size: 11.5px; color: var(--ink-mute); }
+.cbd-metrics .m .v { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cbd-legend { margin-top: 14px; }
+.cbd-legend .lg { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); margin-bottom: 8px; }
+.cbd-legend .sw { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 @media (max-width: 560px) { .card td:first-child { width: 52%; } }
 </style>
 </head>
@@ -174,6 +212,53 @@ footer a { color: var(--signal); }
   });
 })();
 function g(re, txt, i) { const m = txt.match(re); return m ? m[i === undefined ? 1 : i] : null; }
+function unq(s) { return s == null ? s : String(s).replace(/^["']+|["']+$/g, ''); }
+// --- Device / UAD detection ---
+// [pattern, friendly vendor, category]  category: 'desk' | 'soft' | 'mobile' | 'web'
+var UAD_VENDORS = [
+  [/yealink/i, "Yealink", "desk"], [/polycom|poly\b|vvx|trio/i, "Polycom / Poly", "desk"],
+  [/grandstream|grp\d|gxp|gxv|ht\d/i, "Grandstream", "desk"], [/cisco|spa\d|cp-\d/i, "Cisco", "desk"],
+  [/snom/i, "Snom", "desk"], [/fanvil/i, "Fanvil", "desk"], [/sangoma/i, "Sangoma", "desk"],
+  [/htek/i, "Htek", "desk"], [/aastra|mitel/i, "Mitel / Aastra", "desk"], [/panasonic/i, "Panasonic", "desk"],
+  [/digium/i, "Digium", "desk"], [/algo|cyberdata/i, "Algo / CyberData (SIP endpoint)", "desk"],
+  [/gloco?m/i, "gloCOM", "soft"], [/zoiper/i, "Zoiper", "soft"], [/bria|counterpath|x-lite/i, "Bria / CounterPath", "soft"],
+  [/linphone/i, "Linphone", "soft"], [/microsip/i, "MicroSIP", "soft"], [/jitsi/i, "Jitsi", "soft"],
+  [/telephone|acrobits|groundwire/i, "Acrobits", "mobile"], [/csipsimple|sipnetic/i, "Mobile SIP client", "mobile"],
+  [/pjsua/i, "PJSIP-based client", "soft"], [/softphone/i, "Generic softphone", "soft"],
+  [/webrtc|sip\.js|jssip|sipml/i, "WebRTC client", "web"]
+];
+var CAT_LABEL = { desk: "Desk phone (hardware)", soft: "Softphone (desktop app)", mobile: "Mobile softphone (app)", web: "WebRTC / browser client" };
+function deviceInfo(t, r) {
+  var out = {};
+  // Try to find a User-Agent string if the trace happens to include one.
+  // PBXware/AGI logs a header read as: ...User-Agent...) 200 result=1 (VALUE)
+  var ua = g(/(?:PJSIP_HEADER|SIP_HEADER)\([^)]*User-Agent[^)]*\)\s+200 result=\d+\s+\(([^)]+)\)/i, t)
+        || g(/User-Agent\s*[:=]\s*"?([^"\r\n)]+)/i, t)
+        || g(/"User-Agent:\s*([^"\r\n]+)"/i, t);
+  if (ua) { ua = unq(ua.trim()); if (ua && !/^result/i.test(ua) && ua.length > 1) out.userAgent = ua; }
+  // gloCOM app usage (explicit variables or UA mention)
+  if (/GLOCOM_OUT_CALL\s+200 result=1 \(/.test(t) || /GLOCOM_ORIGINATE_COUNT\s+200 result=1 \(/.test(t) || (out.userAgent && /gloco?m/i.test(out.userAgent))) out.glocom = true;
+  // Map user-agent to a friendly vendor + category
+  if (out.userAgent) {
+    for (var i = 0; i < UAD_VENDORS.length; i++) {
+      if (UAD_VENDORS[i][0].test(out.userAgent)) { out.vendor = UAD_VENDORS[i][1]; out.category = UAD_VENDORS[i][2]; break; }
+    }
+    // Yealink model extraction, e.g. "Yealink SIP-T46S 66.85.0.5" -> "T46S", "Yealink W73P" -> "W73P"
+    if (/yealink/i.test(out.userAgent)) {
+      var ym = out.userAgent.match(/\b(?:SIP-)?([TWMVAH]\d{2,3}[A-Z]{0,3})\b/i) || out.userAgent.match(/\b(CP\d{2,3})\b/i);
+      if (ym) out.model = ym[1].toUpperCase();
+    } else {
+      // Generic model grab: a token that looks like a model number for known desk vendors
+      var gm = out.userAgent.match(/\b(VVX[\s_-]?\d{3,4})/i) || out.userAgent.match(/\b((?:GXP|GXV|GRP|SPA|CP-?|Trio)[\w-]*\d[\w-]*)\b/i);
+      if (gm && out.category === 'desk') out.model = gm[1].toUpperCase().replace(/[_\s]/g, '');
+    }
+  } else if (out.glocom) {
+    out.vendor = "gloCOM"; out.category = "soft";
+  }
+  out.categoryLabel = out.category ? CAT_LABEL[out.category] : null;
+  out.protocol = r.dialTech || (r.channel ? r.channel.split('/')[0] : null);
+  return out;
+}
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtNum(n) {
   if (!n) return null;
@@ -189,15 +274,64 @@ function fmtDur(s) {
   return (h ? h + 'h ' : '') + m + 'm ' + sec + 's';
 }
 function toSec(t) { const p = t.split(':').map(Number); return p[0]*3600 + p[1]*60 + p[2]; }
+var COUNTRY_CODES = {
+"1":"USA/Canada","20":"Egypt","27":"South Africa","30":"Greece","31":"Netherlands","32":"Belgium","33":"France",
+"34":"Spain","36":"Hungary","39":"Italy","40":"Romania","41":"Switzerland","43":"Austria","44":"United Kingdom",
+"45":"Denmark","46":"Sweden","47":"Norway","48":"Poland","49":"Germany","51":"Peru","52":"Mexico","53":"Cuba",
+"54":"Argentina","55":"Brazil","56":"Chile","57":"Colombia","58":"Venezuela","60":"Malaysia","61":"Australia",
+"62":"Indonesia","63":"Philippines","64":"New Zealand","65":"Singapore","66":"Thailand","81":"Japan","82":"South Korea",
+"84":"Vietnam","86":"China","90":"Turkey","91":"India","92":"Pakistan","93":"Afghanistan","94":"Sri Lanka",
+"95":"Myanmar","98":"Iran","212":"Morocco","213":"Algeria","216":"Tunisia","218":"Libya","220":"Gambia",
+"221":"Senegal","233":"Ghana","234":"Nigeria","251":"Ethiopia","254":"Kenya","255":"Tanzania","256":"Uganda",
+"260":"Zambia","263":"Zimbabwe","264":"Namibia","351":"Portugal","352":"Luxembourg","353":"Ireland","354":"Iceland",
+"355":"Albania","358":"Finland","359":"Bulgaria","370":"Lithuania","371":"Latvia","372":"Estonia","380":"Ukraine",
+"381":"Serbia","385":"Croatia","386":"Slovenia","420":"Czech Republic","421":"Slovakia","505":"Nicaragua",
+"506":"Costa Rica","507":"Panama","509":"Haiti","51":"Peru","598":"Uruguay","852":"Hong Kong","853":"Macau",
+"855":"Cambodia","856":"Laos","880":"Bangladesh","886":"Taiwan","961":"Lebanon","962":"Jordan","963":"Syria",
+"964":"Iraq","965":"Kuwait","966":"Saudi Arabia","967":"Yemen","968":"Oman","970":"Palestine","971":"UAE",
+"972":"Israel","973":"Bahrain","974":"Qatar","975":"Bhutan","976":"Mongolia","977":"Nepal","992":"Tajikistan",
+"993":"Turkmenistan","994":"Azerbaijan","995":"Georgia","996":"Kyrgyzstan","998":"Uzbekistan"
+};
+// NANP area codes that are separate countries (still +1, but international from the US)
+var NANP_INTL = {
+"242":"Bahamas","246":"Barbados","264":"Anguilla","268":"Antigua & Barbuda","284":"British Virgin Islands",
+"345":"Cayman Islands","441":"Bermuda","473":"Grenada","649":"Turks & Caicos","664":"Montserrat",
+"721":"Sint Maarten","758":"St Lucia","767":"Dominica","784":"St Vincent","809":"Dominican Republic",
+"829":"Dominican Republic","849":"Dominican Republic","868":"Trinidad & Tobago","869":"St Kitts & Nevis",
+"876":"Jamaica","658":"Jamaica","784":"St Vincent"
+};
+function intlCountry(digits) {
+  // digits: raw digits after any 011 prefix already stripped; returns matched country name or null
+  for (var len = 3; len >= 1; len--) {
+    var cc = digits.slice(0, len);
+    if (COUNTRY_CODES[cc]) return { cc: cc, country: COUNTRY_CODES[cc] };
+  }
+  return null;
+}
 function classify(num) {
   if (!num) return null;
   const d = num.replace(/\D/g, '');
   const ten = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  const npa = ten.length === 10 ? ten.slice(0,3) : null;
   if (d === '911' || d === '933') return { label: 'Emergency', tone: 'bad' };
   if (/^(800|833|844|855|866|877|888)/.test(ten) && ten.length === 10) return { label: 'Toll-free', tone: 'ok' };
+  // International dialed with 011 prefix
+  if (/^011/.test(d)) {
+    const rest = d.slice(3);
+    const c = intlCountry(rest);
+    return { label: 'International' + (c ? ' · ' + c.country : ''), tone: 'warn', intl: true, country: c ? c.country : null, cc: c ? c.cc : null };
+  }
+  // NANP number that is a separate country (Caribbean etc.) — international even though +1
+  if (npa && NANP_INTL[npa]) return { label: 'International · ' + NANP_INTL[npa], tone: 'warn', intl: true, country: NANP_INTL[npa], cc: '1' };
+  // Bare E.164-style international (no 011, longer than NANP, doesn't start with 1)
+  if (d.length >= 8 && d.length <= 15 && d[0] !== '1' && ten.length !== 10) {
+    const c = intlCountry(d);
+    if (c && c.cc !== '1') return { label: 'International' + (c ? ' · ' + c.country : ''), tone: 'warn', intl: true, country: c ? c.country : null, cc: c ? c.cc : null };
+    return { label: 'International (unrecognized CC)', tone: 'warn', intl: true };
+  }
   if (d.length === 11 && d[0] === '1') return { label: 'Long distance (1+)', tone: 'mute' };
   if (ten.length === 10) return { label: 'Domestic 10-digit', tone: 'mute' };
-  if (d.length > 11 || /^011/.test(d)) return { label: 'International', tone: 'warn' };
+  if (d.length > 15) return { label: 'International', tone: 'warn', intl: true };
   if (d.length <= 5) return { label: 'Internal / feature code', tone: 'mute' };
   return { label: d.length + ' digits', tone: 'mute' };
 }
@@ -244,6 +378,24 @@ var NPA_REGION = {
 "978":"MA","979":"TX","980":"NC","984":"NC","985":"LA","986":"ID","989":"MI"
 };
 var TOLLFREE = {"800":1,"833":1,"844":1,"855":1,"866":1,"877":1,"888":1};
+var REGION_FULL = {
+"AL":"Alabama","AK":"Alaska","AZ":"Arizona","AR":"Arkansas","CA":"California","CO":"Colorado","CT":"Connecticut",
+"DE":"Delaware","DC":"District of Columbia","FL":"Florida","GA":"Georgia","HI":"Hawaii","ID":"Idaho","IL":"Illinois",
+"IN":"Indiana","IA":"Iowa","KS":"Kansas","KY":"Kentucky","LA":"Louisiana","ME":"Maine","MD":"Maryland",
+"MA":"Massachusetts","MI":"Michigan","MN":"Minnesota","MS":"Mississippi","MO":"Missouri","MT":"Montana",
+"NE":"Nebraska","NV":"Nevada","NH":"New Hampshire","NJ":"New Jersey","NM":"New Mexico","NY":"New York",
+"NC":"North Carolina","ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon","PA":"Pennsylvania",
+"RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota","TN":"Tennessee","TX":"Texas","UT":"Utah",
+"VT":"Vermont","VA":"Virginia","WA":"Washington","WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming",
+"AB":"Alberta","BC":"British Columbia","MB":"Manitoba","NB":"New Brunswick","NL":"Newfoundland & Labrador",
+"NS":"Nova Scotia","ON":"Ontario","QC":"Quebec","SK":"Saskatchewan","PR":"Puerto Rico","USVI":"U.S. Virgin Islands",
+"CNMI":"Northern Mariana Islands","Guam":"Guam","Samoa":"American Samoa","Yukon/NWT":"Yukon / Northwest Territories",
+"BVI":"British Virgin Islands","TCI":"Turks & Caicos"
+};
+function regionLong(abbr) {
+  if (!abbr) return null;
+  return REGION_FULL[abbr] || abbr; // already-full names (e.g. "Jamaica") pass through
+}
 function numberDetail(raw) {
   if (!raw) return null;
   var d = String(raw).replace(/\D/g, '');
@@ -257,9 +409,9 @@ function numberDetail(raw) {
   out.nxx = d.slice(3,6);
   out.line = d.slice(6);
   out.e164 = '+1' + d;
-  if (TOLLFREE[out.npa]) out.region = 'Toll-free (non-geographic)';
-  else if (out.npa === '900') out.region = 'Premium-rate';
-  else out.region = NPA_REGION[out.npa] || 'Unknown NPA';
+  if (TOLLFREE[out.npa]) { out.region = 'Toll-free (non-geographic)'; out.regionFull = out.region; }
+  else if (out.npa === '900') { out.region = 'Premium-rate'; out.regionFull = out.region; }
+  else { out.region = NPA_REGION[out.npa] || 'Unknown NPA'; out.regionFull = out.region === 'Unknown NPA' ? out.region : regionLong(out.region); }
   return out;
 }
 function decodeDialFlags(opts) {
@@ -291,11 +443,11 @@ function parse(t) {
   r.context = g(/agi_context:\s*(\S+)/, t);
   r.lang = g(/agi_language:\s*(\S+)/, t);
   r.pres = g(/agi_callingpres:\s*(\d+)/, t);
-  r.srcIp = g(/Source IP address:\s*(\S+)/, t);
-  r.sipId = g(/CDR\(inboundsipcallid\)\s+(\S+)/, t);
+  r.srcIp = unq(g(/Source IP address:\s*"?([^"\s]+)/, t));
+  r.sipId = unq(g(/CDR\(inboundsipcallid\)\s+"?([^"\s]+)/, t));
   r.cidOut = g(/Re-Setting CallerID to '(\d+)'/, t);
   r.ani = g(/CALLERID\(ani\)=(\d+)/, t);
-  r.trunk = g(/CDR\(trunk\)\s+(\S+)/, t) || g(/Found primary trunk '([^']+)'/, t);
+  r.trunk = unq(g(/CDR\(trunk\)\s+"?([^"\s]+)/, t)) || g(/Found primary trunk '([^']+)'/, t);
   r.trunk2 = g(/Found secondary trunk '([^']+)'/, t);
   r.trunk3 = g(/Found tertiary trunk '([^']+)'/, t);
   r.route = g(/Found Destination '([^']+)'/, t);
@@ -305,12 +457,14 @@ function parse(t) {
   r.bill = g(/Bill-Ammount:\s*([\d.]+)/, t);
   r.ratingDur = g(/Rating-Duration:\s*(\d+)/, t);
   r.timeout = g(/TIMEOUT\(absolute\)=(\d+)/, t);
-  r.accountId = g(/CDR\(accountid\)\s+(\S+)/, t);
-  const dialM = t.match(/exec Dial\s+(\w+)\/(\S+?)@(\S+?)(?:,([^\t]*))?\t/);
+  r.accountId = unq(g(/CDR\(accountid\)\s+"?([^"\s]+)/, t));
+  // Handles both "PJSIP/254@trunk,opts" and bare "PJSIP/254,opts" (extension dial)
+  const dialM = t.match(/exec Dial\s+(\w+)\/([^@\s,\/]+)(?:@([^\s,\/]+))?(?:\/(\w+))?(?:,([^\r\n\t]*?))?(?:\s+200|\t)/);
   r.dialTech = dialM ? dialM[1] : null;
   r.dialNum = dialM ? dialM[2] : null;
-  r.dialTrunk = dialM ? dialM[3] : null;
-  r.dialOpts = dialM && dialM[4] ? dialM[4].replace(/^,*/, '') : (dialM ? '' : null);
+  r.dialTrunk = dialM ? (dialM[3] || null) : null;
+  r.dialOpts = dialM && dialM[5] ? dialM[5].replace(/^,*/, '').trim() : (dialM ? '' : null);
+  r.isLocalChannel = r.dialTech === 'Local';
   // --- Voicemail termination detection ---
   // The call ends in voicemail if the VoiceMail app runs, a vm context is entered,
   // or the dial falls through to a mailbox (e.g. exec VoiceMail 229@default,u).
@@ -321,36 +475,120 @@ function parse(t) {
     || /Message-Exchange|VMMAIN|vm-(?:intro|theperson|isunavail)|voicemail/i.test(t)
     || /Dial[^\t\r\n]*@voicemail/i.test(t)
     || /exec\s+Voicemail/i.test(t);
-  const times = [...t.matchAll(/^(\d{2}:\d{2}:\d{2})/gm)].map(m => m[1]);
+  // For voicemail calls, capture the ring time = time from dial start until the
+  // "did not answer" / VoiceMail exec line (how long it rang before rolling to VM).
+  if (r.toVoicemail) {
+    const vmLine = t.match(/^[ \t]*(\d{1,2}:\d{2}:\d{2})[^\n]*(?:did not answer|exec VoiceMail)/im);
+    const firstTs = (t.match(/^[ \t]*(\d{1,2}:\d{2}:\d{2})/m) || [])[1];
+    if (vmLine && firstTs) {
+      let rt = toSec(vmLine[1]) - toSec(firstTs);
+      if (rt < 0) rt += 86400;
+      r.vmRingTime = rt;
+    }
+  }
+  const times = [...t.matchAll(/^[ \t]*(\d{1,2}:\d{2}:\d{2})/gm)].map(m => m[1]);
   r.startT = times[0] || null;
   r.endT = times.length > 1 ? times[times.length - 1] : null;
+  // Queue timing (parsed early so duration logic can use it)
+  const qTalk = g(/ATALKTIME\s+200 result=1 \((\d+)\)/, t);
+  const qHold = g(/HOLDTIME\s+200 result=1 \((\d+)\)/, t);
   r.elapsed = null; r.ring = null;
-  if (r.startT && r.endT && r.ansTime) {
-    let e = toSec(r.endT) - toSec(r.startT);
-    if (e < 0) e += 86400;
-    r.elapsed = e;
-    r.ring = Math.max(0, e - parseInt(r.ansTime, 10));
+  let tsGap = null;
+  if (r.startT && r.endT) {
+    tsGap = toSec(r.endT) - toSec(r.startT);
+    if (tsGap < 0) tsGap += 86400;
+  }
+  if (qTalk) {
+    // Queue call: ATALKTIME is the real talk time; HOLDTIME is the wait in queue.
+    // Ring/wait = hold time (or timestamp gap minus talk), talk = ATALKTIME.
+    const talkS = parseInt(qTalk, 10);
+    const holdS = qHold ? parseInt(qHold, 10) : (tsGap != null ? Math.max(0, tsGap - talkS) : 0);
+    r.ansTime = String(talkS);
+    r.ring = holdS;
+    r.elapsed = tsGap != null ? tsGap : (holdS + talkS);
+    r.isQueueTiming = true;
+  } else if (r.startT && r.endT && r.ansTime) {
+    // Full case: two timestamps + answered time. Split ring vs talk.
+    r.elapsed = tsGap;
+    r.ring = Math.max(0, tsGap - parseInt(r.ansTime, 10));
+  } else if (r.ansTime) {
+    // Only answered time available (single timestamp): use it as talk duration.
+    r.elapsed = parseInt(r.ansTime, 10);
+    r.ring = 0;
+    r.ringUnknown = true;
+  } else if (tsGap != null) {
+    // No ANSWEREDTIME (e.g. internal / local-channel calls): use the timestamp gap
+    // as the total elapsed duration. We can't split ring vs talk, so mark it.
+    r.elapsed = tsGap;
+    r.ring = null;
+    r.durFromTimestamps = true;
   }
   r.recNotStarted = /Recording is not started/.test(t);
-  const fmt = t.match(/TOUCH_MIXMONITOR_FORMAT\s+(\w+)/);
+  const fmt = t.match(/TOUCH_MIXMONITOR_FORMAT\s+"?(\w+)/);
   r.recFormat = fmt ? fmt[1] : null;
-  r.recPath = g(/__TOUCH_MIXMONITOR\s+(\/\S+)/, t) || g(/MONITOR_GOSUB\s+(\/\S+)/, t);
-  r.monitorActive = /get variable MONITOR_ID\t200 result=1/.test(t);
-  r.recStartMsg = g(/TOUCH_MIXMONITOR_MESSAGE_START ([^\t\r\n]+)\t/, t);
-  r.recStopMsg = g(/TOUCH_MIXMONITOR_MESSAGE_STOP ([^\t\r\n]+)\t/, t);
-  r.cfActive = /IS_CALL_FORWARDING\t200 result=1/.test(t) || /FORWARDED_FROM\t200 result=1/.test(t);
-  const cfu = t.match(/CF_LINE_UNAVAIL\)\t200 result=1 \(([^)]*)\)/);
+  r.recPath = unq(g(/__TOUCH_MIXMONITOR\s+"?(\/[^"\s]+)/, t)) || unq(g(/MONITOR_GOSUB\s+"?(\/[^"\s]+)/, t));
+  // Recording is active if MixMonitor ran, monitor started flag set, or a MONITOR_ID handle exists.
+  const mixMon = t.match(/exec\s+MixMonitor\s+(\/\S+?\.(?:wav49|wav|WAV|gsm|mp3))/i);
+  r.mixMonitorPath = mixMon ? mixMon[1] : null;
+  r.monitorActive = !!mixMon
+    || /MONITOR_STARTED"?\s+"?true/i.test(t)
+    || /get variable MONITOR_ID\s+200 result=1 \(0x/i.test(t)
+    || /Recording already started/i.test(t);
+  if (r.mixMonitorPath && !r.recFormat) {
+    const ext = r.mixMonitorPath.match(/\.(\w+)$/);
+    r.recFormat = ext ? ext[1] : r.recFormat;
+  }
+  r.recMp3 = /convert2mp3|\.mp3/i.test(t);
+  r.recStartMsg = unq(g(/TOUCH_MIXMONITOR_MESSAGE_START\s+"?([^"\t\r\n]*?)"?\s+200/, t)) || null;
+  r.recStopMsg = unq(g(/TOUCH_MIXMONITOR_MESSAGE_STOP\s+"?([^"\t\r\n]*?)"?\s+200/, t)) || null;
+  // Call forwarding: variable set OR runtime flag, both whitespace formats
+  r.cfActive = /IS_CALL_FORWARDING"?\s+"?1/i.test(t)
+    || /IS_CALL_FORWARDING\s+200 result=1/.test(t)
+    || /FORWARDED_FROM\s+200 result=1/.test(t)
+    || /REDIRECTING\(reason\)\s+"?follow_me/i.test(t)
+    || /REDIRECTING\(reason\)\s+"?(?:cfwd|forward|unconditional|noanswer|busy)/i.test(t);
+  r.redirectReason = g(/REDIRECTING\(reason\)\s+"([^"]+)"/, t);
+  // Enhanced Services: DND and Follow Me
+  r.dndEnabled = /'Do Not Disturb' is enabled/i.test(t);
+  r.followMe = /'Follow Me' is enabled/i.test(t);
+  const cfu = t.match(/CF_LINE_UNAVAIL\)?\s+200 result=1 \(([^)]*)\)/);
   r.cfUnavail = cfu ? (cfu[1].trim() !== '' ? cfu[1].trim() : false) : null;
-  r.attXfer = /ATTENDEDTRANSFER\t200 result=1/.test(t);
-  r.blindXfer = /BLINDTRANSFER\t200 result=1/.test(t);
-  r.xferName = g(/TRANSFERERNAME\t200 result=1 \(([^)]+)\)/, t);
-  r.glocom = /GLOCOM_OUT_CALL\t200 result=1/.test(t);
-  r.dialer = /DIALER-TRUNK\t200 result=1/.test(t);
-  r.email2fax = /EMAIL2FAX_APP\t200 result=1/.test(t);
-  r.hotDesk = /HOT_DESKING_LOGIN\t200 result=1/.test(t);
+  r.attXfer = /ATTENDEDTRANSFER\s+200 result=1/.test(t);
+  r.blindXfer = /BLINDTRANSFER\s+200 result=1/.test(t);
+  r.xferName = g(/TRANSFERERNAME\s+200 result=1 \(([^)]+)\)/, t);
+  r.glocom = /GLOCOM_OUT_CALL\s+200 result=1/.test(t);
+  r.device = deviceInfo(t, r);
+  r.dialer = /DIALER-TRUNK\s+200 result=1/.test(t);
+  r.email2fax = /EMAIL2FAX_APP\s+200 result=1/.test(t);
+  r.hotDesk = /HOT_DESKING_LOGIN\s+200 result=1/.test(t);
   r.faxOff = /DISABLEFAXDETECTION YES/.test(t);
   r.videoOffer = g(/PJSIP_MEDIA_OFFER\(video\)\}\t200 result=1 \(([^)]*)\)/, t);
   r.pbxLoops = g(/__PBX_LOOPS\s+(\d+)/, t);
+  // --- Telnyx voice AI path detection ---
+  // When the AI forwarding number appears in a trace, the call went to the Telnyx
+  // voice AI and was transferred back into the system (landing in queue 501 / InitSupport).
+  var AI_NUMBERS = ["3126515380"];
+  r.viaVoiceAI = AI_NUMBERS.some(function (n) { return t.indexOf(n) !== -1; });
+  r.voiceAINumber = r.viaVoiceAI ? AI_NUMBERS.find(function (n) { return t.indexOf(n) !== -1; }) : null;
+  // --- Queue / call-center detection ---
+  r.queueName = unq(g(/Dialing queue\s+'([^']+)'/, t) || g(/exec queue\s+"([^"]+)"/i, t));
+  r.isQueueCall = !!r.queueName || /Found Destination queues/.test(t) || /exec\s+queue\s+/i.test(t);
+  // Agent who handled the call
+  var agent = g(/LAST_CON_AGENT\s+200 result=1 \(([^)]+)\)/, t) || g(/MEMBERNAME\s+200 result=1 \(([^)]+)\)/, t);
+  r.agent = (agent && agent.trim()) ? agent.trim() : null;
+  r.agentInterface = g(/MEMBERINTERFACE\s+200 result=1 \(([^)]+)\)/, t);
+  // Queue timing
+  r.queueTalk = g(/ATALKTIME\s+200 result=1 \((\d+)\)/, t);
+  r.queueHold = g(/HOLDTIME\s+200 result=1 \((\d+)\)/, t);
+  r.queuePosition = g(/ENTPOS\s+200 result=1 \((\d+)\)/, t);
+  r.abandoned = /ABANDONED\s+200 result=1 \(1\)/.test(t) || /QUEUESTATUS\s+200 result=1 \(ABANDON/.test(t);
+  // Hangup reason — the definitive "who disconnected" if present
+  var hr = g(/HANGUP_REASON\s+200 result=1 \(([^)]+)\)/, t);
+  r.hangupReason = hr ? hr.trim() : null;
+  // DID that was originally called (inbound)
+  r.didNumber = g(/DIDNUMBER\s+200 result=1 \((\d+)\)/, t);
+  r.didCalled = g(/DIDCALLED\s+200 result=1 \((\d+)\)/, t) || g(/CDR\(did\)\s+"?(\d+)/, t);
+  r.didTrunk = unq(g(/DID_TRUNK\s+200 result=1 \(([^)]+)\)/, t));
   r.opTimesSkipped = /Skipped Operation Times/.test(t);
   // --- Operation times (business hours) detection ---
   // PBXware evaluates operation hours and logs which set it loaded and whether it applied them.
@@ -399,19 +637,27 @@ function parse(t) {
   // --- Direction detection ---
   // Outbound: an internal extension (short callerid) dials an external number via a trunk.
   // Inbound: an external number (long callerid, or trunk-sourced) reaches a DID/extension.
+  // Internal: an extension dials another local extension (Local channel / localextensions destination).
   const cidDigits = (r.ext || '').replace(/\D/g, '');
+  const dnidDigits = (r.dnid || '').replace(/\D/g, '');
   const cidIsExtension = cidDigits.length > 0 && cidDigits.length <= 5;
+  const dnidIsExtension = dnidDigits.length > 0 && dnidDigits.length <= 5;
   const dialToTrunk = !!(r.dialTrunk && /-out|_out|SR-out|trunk/i.test(r.dialTrunk));
-  const inboundHints = /DID_CALL\t200 result=1/.test(t) || /DIDCALLED\t200 result=1/.test(t) || /is in DID database/.test(t);
+  const toLocalExt = /Found Destination localextensions|Looking up for system extension|This is local extension|@local-call/i.test(t) || r.isLocalChannel;
+  const inboundHints = /DID_CALL\s+200 result=1/.test(t) || /DIDCALLED\s+200 result=1/.test(t) || /is in DID database/.test(t);
   const rdnis = g(/agi_rdnis:\s*(\S+)/, t);
   r.rdnis = (rdnis && rdnis.toLowerCase() !== 'unknown') ? rdnis : null;
 
-  if (!cidIsExtension && cidDigits.length >= 7) {
+  if (cidIsExtension && dnidIsExtension && toLocalExt) {
+    r.direction = 'internal';
+  } else if (!cidIsExtension && cidDigits.length >= 7) {
     r.direction = 'inbound';
   } else if (dialToTrunk && cidIsExtension) {
     r.direction = 'outbound';
   } else if (inboundHints) {
     r.direction = 'inbound';
+  } else if (toLocalExt && cidIsExtension) {
+    r.direction = 'internal';
   } else if (dialToTrunk) {
     r.direction = 'outbound';
   } else {
@@ -422,6 +668,9 @@ function parse(t) {
   if (r.direction === 'inbound') {
     r.extCaller = r.ext;              // the calling party (external number)
     r.calledExt = r.dnid;            // the DID / extension reached
+  } else if (r.direction === 'internal') {
+    r.extCaller = null;
+    r.calledExt = r.dnid;            // the local extension being called
   } else {
     r.extCaller = null;
     r.calledExt = null;
@@ -437,23 +686,205 @@ function metric(label, value, sub) {
   return '<div class="metric"><div class="lbl">' + esc(label) + '</div><div class="val">' + (value || '—') + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
 }
 let lastSummary = '';
+function hms(sec) {
+  sec = parseInt(sec, 10); if (isNaN(sec)) sec = 0;
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function donut(segments) {
+  // segments: [{label, sec, color}]. Returns an SVG donut.
+  const total = segments.reduce((a,s)=>a+s.sec,0) || 1;
+  const R = 90, cx = 110, cy = 110, C = 2*Math.PI*R;
+  let off = 0, arcs = '';
+  for (const s of segments) {
+    const frac = s.sec/total;
+    if (frac <= 0) continue;
+    const len = frac*C;
+    arcs += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="'+s.color+'" stroke-width="40" '
+      + 'stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+cx+' '+cy+')"></circle>';
+    off += len;
+  }
+  return '<svg viewBox="0 0 220 220" width="100%" style="max-width:240px;display:block;margin:0 auto;">'+arcs+'</svg>';
+}
+function far2NoAnswer(r, inbound) {
+  // The party that failed to answer is the callee/extension being dialed.
+  if (r.vmMailbox) return 'Ext ' + String(r.vmMailbox).replace(/@.*$/, '');
+  if (r.dialNum && /^\d{1,6}$/.test(r.dialNum)) return 'Ext ' + r.dialNum;
+  if (r.agiExten && /^\d{1,6}$/.test(r.agiExten)) return 'Ext ' + r.agiExten;
+  if (r.calledExt && /^\d{1,6}$/.test(r.calledExt)) return 'Ext ' + r.calledExt;
+  return 'The extension';
+}
+function buildTimeline(r) {
+  const inbound = r.direction === 'inbound';
+  const internal = r.direction === 'internal';
+  const answered = r.dialstatus === 'ANSWER';
+  const far = inbound ? (fmtNum(r.extCaller) || 'caller') : (internal ? ('Ext ' + (r.calledExt || r.dnid || '?')) : (fmtNum(r.dnid) || 'destination'));
+  const fromLine = inbound
+    ? 'From ' + (fmtNum(r.extCaller) || 'external') + (r.name ? ' (' + esc(r.name) + ')' : '') + ', via ' + esc(r.trunk || 'trunk') + (r.calledExt ? ', to DID ' + esc(fmtNum(r.calledExt)) : '')
+    : (internal
+      ? 'From ' + esc(r.name || 'ext ' + (r.ext||'')) + '(' + esc(r.ext||'') + '), extension-to-extension' + (r.isLocalChannel ? ' via Local channel' : '') + (r.followMe ? ', Follow Me' : '')
+      : 'From ' + esc(r.name || 'ext ' + (r.ext||'')) + '(' + esc(r.ext||'') + '), In Extension Endpoint, via ' + esc(r.trunk || 'trunk') + (r.cidOut ? ', DOD ' + esc(r.cidOut) : ''));
+
+  // Duration model:
+  //  - ring: waiting/routing seconds (null = unknown)
+  //  - talk: pure talk seconds from ANSWEREDTIME (null = unknown)
+  //  - total: overall elapsed
+  const hasAns = r.ansTime != null && r.ansTime !== '';
+  const ring = r.ring != null ? r.ring : (r.durFromTimestamps ? null : 0);
+  const talk = hasAns ? parseInt(r.ansTime,10) : null;
+  const total = r.elapsed != null ? r.elapsed : ((ring||0) + (talk||0));
+  const answerOffset = (ring != null) ? ring : (r.durFromTimestamps ? total : 0);
+
+  // --- Basic sidebar ---
+  const fromChip = '<span class="chip"><span class="dot p">' + esc((r.name||'?').charAt(0).toUpperCase()) + '</span>' + esc((r.name||('Ext '+(r.ext||'?'))) + '<' + (r.ext||'') + '>') + '</span>';
+  const toVal = inbound ? (fmtNum(r.extCaller)||'?') : (internal ? ('Ext ' + (r.calledExt || r.dnid || '?')) : (fmtNum(r.dnid)||'?'));
+  const toChip = '<span class="chip"><span class="dot e">' + esc(String(toVal).replace(/\D/g,'').slice(0,1) || '#') + '</span>' + esc(toVal) + '</span>';
+  // Prefer the definitive HANGUP_REASON when the trace records it (queue calls do)
+  const hrMap = { CALLER: 'Caller (external party)', AGENT: 'Agent', CALLEE: 'Callee', TRANSFER: 'Transfer', TIMEOUT: 'Timeout / no answer' };
+  const discBy = r.hangupReason ? (hrMap[r.hangupReason.toUpperCase()] || r.hangupReason)
+    : (r.toVoicemail ? 'Voicemail system'
+    : (answered ? (inbound ? 'Call Party (Extension)' : internal ? 'Call Party (Extension)' : 'Call Party (External Number)') : 'System / no answer'));
+  const discByExact = !!r.hangupReason;
+
+  let basic = '<div class="col"><h3><span class="chev">▾</span>Basic</h3>';
+  basic += '<div class="basic-field"><div class="bl">ID</div><div class="bv">' + esc(r.uid || '—') + '</div></div>';
+  basic += '<div class="basic-field"><div class="bl">Time</div><div class="bv">' + esc(r.startT || '—') + '</div></div>';
+  const commType = internal ? 'Internal' : (inbound ? 'Inbound' : 'Outbound');
+  basic += '<div class="basic-field"><div class="bl">Communication Type</div><div class="bv">' + commType + (r.klass && r.klass.intl ? ' · <span class="warntx">🌐 International' + (r.klass.country ? ' (' + esc(r.klass.country) + ')' : '') + '</span>' : '') + '</div></div>';
+  basic += '<div class="basic-field"><div class="bl">Call From</div><div class="bv">' + fromChip + '</div></div>';
+  basic += '<div class="basic-field"><div class="bl">Call To</div><div class="bv">' + toChip + '</div></div>';
+  basic += '<div class="basic-field"><div class="bl">Last Participant</div><div class="bv">' + toChip + '</div></div>';
+  basic += '<div class="basic-field"><div class="bl">Last Status</div><div class="bv">' + esc(r.dialstatus ? (answered ? 'Answered' : r.dialstatus) : 'Unknown') + '</div></div>';
+  basic += '<div class="basic-field"><div class="bl">Disconnected by</div><div class="bv">' + esc(discBy) + (discByExact ? ' <span class="good" style="font-size:11px;">(from HANGUP_REASON)</span>' : ' <span class="mutetx" style="font-size:11px;">(not in trace — inferred)</span>') + '</div></div>';
+  if (r.viaVoiceAI) {
+    basic += '<div class="basic-field"><div class="bl">Voice AI</div><div class="bv">🤖 Via Telnyx AI → queue' + (r.queueName ? ' (' + esc(r.queueName) + ')' : '') + '</div></div>';
+  }
+  if (r.isQueueCall) {
+    basic += '<div class="basic-field"><div class="bl">Queue</div><div class="bv">' + esc(r.queueName || 'Queue call') + '</div></div>';
+    if (r.agent) basic += '<div class="basic-field"><div class="bl">Answered by</div><div class="bv">' + esc(r.agent) + '</div></div>';
+    if (r.queueHold != null) basic += '<div class="basic-field"><div class="bl">Hold / wait</div><div class="bv">' + esc(hms(parseInt(r.queueHold,10))) + '</div></div>';
+  }
+  if (r.trunk) basic += '<div class="basic-field"><div class="bl">Trunk</div><div class="bv">' + esc(r.trunk) + '</div></div>';
+  {
+    const d = r.device || {};
+    let dv = null;
+    if (d.vendor && d.model) dv = esc(d.vendor + ' ' + d.model) + (d.categoryLabel ? ' · ' + esc(d.categoryLabel) : '');
+    else if (d.vendor) dv = esc(d.vendor) + (d.categoryLabel ? ' · ' + esc(d.categoryLabel) : '');
+    else if (d.glocom) dv = 'gloCOM · softphone app';
+    basic += '<div class="basic-field"><div class="bl">Device / UAD</div><div class="bv">' + (dv || '<span class="mutetx">Not in trace (needs SIP User-Agent)</span>') + '</div></div>';
+  }
+  if (r.dndEnabled) basic += '<div class="basic-field"><div class="bl">Do Not Disturb</div><div class="bv"><span class="warntx">Enabled</span></div></div>';
+  if (r.followMe) basic += '<div class="basic-field"><div class="bl">Follow Me</div><div class="bv"><span class="warntx">Enabled</span></div></div>';
+  if (r.cfActive) basic += '<div class="basic-field"><div class="bl">Call Forwarding</div><div class="bv"><span class="warntx">Active' + (r.redirectReason ? ' (' + esc(r.redirectReason) + ')' : '') + '</span></div></div>';
+  if (r.monitorActive) basic += '<div class="basic-field"><div class="bl">Recording</div><div class="bv"><span class="good">Active' + (r.recFormat ? ' · ' + esc(r.recFormat) : '') + (r.recMp3 ? ' → MP3' : '') + '</span></div></div>';
+  if (r.toVoicemail) basic += '<div class="basic-field"><div class="bl">Voicemail</div><div class="bv">' + esc(r.vmMailbox || 'yes') + '</div></div>';
+  basic += '</div>';
+
+  // --- Timeline middle ---
+  const ev = [];
+  const noAnswer = r.dialstatus === 'NOANSWER' || r.dialstatus === 'NOANSWER' || r.dialstatus === 'BUSY';
+  ev.push({ ico:'dial', cls:'dial', t:'00:00', t1: (inbound?'Call from ':'Call to ') + esc(far), t2: fromLine });
+  ev.push({ ico:'try', cls:'try', t:'00:00', t1:'Tried to contact ' + esc(far), t2:null });
+  if (r.toVoicemail) {
+    // Voicemail flow: callee did NOT answer → rolled to voicemail.
+    // Ring offset = time from dial to voicemail.
+    const ringOff = (r.vmRingTime != null ? r.vmRingTime : (r.ring != null ? r.ring : 0));
+    ev.push({ ico:'try', cls:'try', t: hms(ringOff).slice(3), t1: esc(far2NoAnswer(r, inbound)) + ' did not answer', t2: (r.dialstatus ? 'Status: ' + esc(r.dialstatus) : null) });
+    ev.push({ ico:'vm', cls:'vm', t: hms(ringOff).slice(3), t1:'Routed to voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : ''), t2: r.vmGreeting ? esc(r.vmGreeting) + ' greeting played' : null });
+    const endSec = total;
+    ev.push({ ico:'hang', cls:'hang', t: hms(endSec).slice(3), t1: 'Caller left voicemail / call ended', t2: total ? 'Total in system: ' + hms(total) : null });
+  } else {
+    if (answered) {
+      const talkLine = talk != null ? 'Talk duration: ' + hms(talk)
+        : (r.durFromTimestamps ? 'Total duration: ' + hms(total) + ' (answered-time not in trace)' : null);
+      ev.push({ ico:'ans', cls:'ans', t: hms(answerOffset).slice(3), t1: esc(far) + ' answered the call', t2: talkLine });
+    } else if (noAnswer) {
+      ev.push({ ico:'try', cls:'try', t: hms(r.ring != null ? r.ring : total).slice(3), t1: esc(far) + ' did not answer', t2: r.dialstatus ? 'Status: ' + esc(r.dialstatus) : null });
+    }
+    const endSec = total;
+    ev.push({ ico:'hang', cls:'hang', t: hms(endSec).slice(3), t1: esc(far) + ' hung up', t2:null });
+  }
+
+  let mid = '<div class="col"><h3>Call Events</h3><div class="tl-leg">Leg 1</div>';
+  for (const e of ev) {
+    mid += '<div class="tl-event"><div class="tl-ico ' + e.cls + '">' + tlIcon(e.ico) + '</div>'
+      + '<div class="tl-time">' + esc(e.t) + '</div>'
+      + '<div class="tl-body"><div class="t1">' + e.t1 + '</div>' + (e.t2 ? '<div class="t2">' + e.t2 + '</div>' : '') + '</div></div>';
+  }
+  mid += '<div class="tl-ended">Call Ended</div></div>';
+
+  // --- Call time breakdown right ---
+  let segs;
+  if (talk != null && ring != null) {
+    segs = [
+      { label:'Waiting (ring) duration', sec: ring, color:'#33b985' },
+      { label:'Pure talk duration', sec: talk, color:'#f0a03c' },
+      { label:'Hold duration', sec: 0, color:'#5ec7e8' }
+    ];
+  } else {
+    // Only total elapsed is known (no ANSWEREDTIME) — show it as a single segment.
+    segs = [ { label:'Total elapsed (ring/talk split not in trace)', sec: total, color:'#8b98a3' } ];
+  }
+  const segTotal = segs.reduce((a,s)=>a+s.sec,0) || 1;
+  const pct = s => (Math.round(s/segTotal*10000)/100).toFixed(2);
+  let right = '<div class="col"><h3>Call Time Breakdown</h3>';
+  right += '<div class="cbd-metrics">'
+    + '<div class="m"><div class="l">Total Duration</div><div class="v">' + hms(total) + '</div></div>'
+    + '<div class="m"><div class="l">Routing Duration</div><div class="v">' + (ring != null ? hms(ring) : '—') + '</div></div>'
+    + '<div class="m"><div class="l">Handling Duration</div><div class="v">' + (talk != null ? hms(talk) : '—') + '</div></div>'
+    + '</div>';
+  right += donut(segs);
+  right += '<div class="cbd-legend">';
+  for (const s of segs) right += '<div class="lg"><span class="sw" style="background:' + s.color + '"></span>' + esc(s.label) + ': ' + hms(s.sec) + ', ' + pct(s.sec) + '%</div>';
+  right += '</div></div>';
+
+  return '<div class="tl3">' + basic + mid + right + '</div>';
+}
+function tlIcon(k) {
+  // outgoing call: phone with an up-right arrow
+  if (k === 'dial') return '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M21 3l-7 7"/><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V17a2 2 0 0 1-2 2A14 14 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
+  // tried to contact: open ring
+  if (k === 'try') return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="7"/></svg>';
+  // answered: solid green handset
+  if (k === 'ans') return '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M5 3h3.3l1.7 4.3-2.1 1.6a12.5 12.5 0 0 0 5.2 5.2l1.6-2.1L19 15.7V19a2 2 0 0 1-2.2 2A15.6 15.6 0 0 1 3 5.2 2 2 0 0 1 5 3z"/></svg>';
+  // voicemail: envelope
+  if (k === 'vm') return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
+  // hang up: handset rotated down (phone-off / call ended)
+  if (k === 'hang') return '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" transform="rotate(135)"><path d="M5 3h3.3l1.7 4.3-2.1 1.6a12.5 12.5 0 0 0 5.2 5.2l1.6-2.1L19 15.7V19a2 2 0 0 1-2.2 2A15.6 15.6 0 0 1 3 5.2 2 2 0 0 1 5 3z"/></svg>';
+  return '<svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>';
+}
 function render(r) {
   const answered = r.dialstatus === 'ANSWER';
   const inbound = r.direction === 'inbound';
+  const internal = r.direction === 'internal';
+  const hrMap = { CALLER: 'Caller (external party)', AGENT: 'Agent', CALLEE: 'Callee', TRANSFER: 'Transfer', TIMEOUT: 'Timeout / no answer' };
   const initials = r.name ? r.name.split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase() : (inbound ? '☎' : '??');
   const idLine = inbound
     ? esc(r.name || 'External caller') + (r.extCaller ? ' · ' + esc(fmtNum(r.extCaller)) : '')
-    : esc(r.name || 'Unknown caller') + ' · Ext ' + esc(r.ext || '?');
+    : esc(r.name || 'Unknown caller') + ' · Ext ' + esc(r.ext || '?') + (internal ? ' → Ext ' + esc(r.calledExt || r.dnid || '?') : '');
   const tech = (r.dialTech || (r.channel ? r.channel.split('/')[0] : '')) || '';
+  const dirLabel = internal ? 'Internal' : (inbound ? 'Inbound' : 'Outbound');
   let h = '<div class="panel">';
   h += '<div class="idrow"><div class="avatar">' + esc(initials) + '</div><div class="who">'
     + '<div class="name">' + idLine + '</div>'
-    + '<div class="meta">' + (inbound ? 'Inbound' : 'Outbound') + ' ' + esc(tech) + ' call'
+    + '<div class="meta">' + dirLabel + ' ' + esc(tech) + ' call'
     + (r.astVersion ? ' · Asterisk ' + esc(r.astVersion) : '') + '</div></div>';
-  h += '<span class="badge ' + (inbound ? 'signal-badge' : 'mute') + '" style="' + (inbound ? 'background:var(--signal-bg);color:var(--signal);border-color:var(--signal);' : '') + '">' + (inbound ? '↙ Inbound' : '↗ Outbound') + '</span>';
+  const dirBadge = internal ? '⇄ Internal' : (inbound ? '↙ Inbound' : '↗ Outbound');
+  const dirStyle = (internal || inbound) ? 'background:var(--signal-bg);color:var(--signal);border-color:var(--signal);' : '';
+  h += '<span class="badge" style="' + dirStyle + (dirStyle ? '' : 'background:var(--paper);') + '">' + dirBadge + '</span>';
   h += '<span class="badge ' + (answered ? 'ok' : (r.dialstatus ? 'warn' : 'mute')) + '">' + esc(r.dialstatus ? (answered ? '✓ Answered' : r.dialstatus) : 'Status unknown') + '</span>';
   h += '<span class="badge ' + (r.monitorActive ? 'ok' : 'mute') + '">' + (r.monitorActive ? '● Recorded' : '○ Not recorded') + '</span>';
-  if (r.klass) h += '<span class="badge ' + r.klass.tone + '">' + esc(r.klass.label) + '</span>';
+  if (r.klass && !internal) h += '<span class="badge ' + r.klass.tone + '">' + esc(r.klass.label) + '</span>';
+  if (r.dndEnabled) h += '<span class="badge warn">DND on</span>';
+  if (r.viaVoiceAI) h += '<span class="badge" style="background:var(--signal-bg);color:var(--signal);border-color:var(--signal);">🤖 Voice AI (Telnyx)</span>';
+  if (r.isQueueCall) h += '<span class="badge" style="background:var(--signal-bg);color:var(--signal);border-color:var(--signal);">☎ Queue' + (r.queueName ? ': ' + esc(r.queueName) : '') + '</span>';
+  if (r.agent) h += '<span class="badge ok">Agent: ' + esc(r.agent.replace(/^Agent\//,'')) + '</span>';
+  if (r.followMe) h += '<span class="badge warn">Follow Me</span>';
+  if (r.device && r.device.categoryLabel) {
+    const dm = r.device.vendor ? (r.device.vendor + (r.device.model ? ' ' + r.device.model : '')) : r.device.categoryLabel;
+    const dcat = r.device.category === 'desk' ? '☎ ' : (r.device.category === 'mobile' ? '📱 ' : '💻 ');
+    h += '<span class="badge" style="background:var(--paper);">' + dcat + esc(dm) + '</span>';
+  }
   if (r.isPrivateIp === false) h += '<span class="badge warn">Remote endpoint</span>';
   if (r.attXfer || r.blindXfer) h += '<span class="badge warn">Transfer leg</span>';
   if (r.toVoicemail) h += '<span class="badge warn">✉ To voicemail</span>';
@@ -468,7 +899,7 @@ function render(r) {
   h += '<div class="grid m3">'
     + callerMetric
     + targetMetric
-    + metric('Disconnected by', '<span class="mutetx">Not recorded</span>', 'No hangup cause in AGI trace')
+    + metric('Disconnected by', r.hangupReason ? '<span class="good">' + esc(hrMap[r.hangupReason.toUpperCase()] || r.hangupReason) + '</span>' : '<span class="mutetx">Not recorded</span>', r.hangupReason ? 'From HANGUP_REASON' : 'No hangup cause in AGI trace')
     + '</div>';
   h += '<div class="grid m3">'
     + metric('Talk time', esc(fmtDur(r.ansTime) || '—'))
@@ -534,20 +965,28 @@ function render(r) {
 
   // ---- Destination & digits dialed ----
   const dd = r.destDetail;
+  const isIntl = r.klass && r.klass.intl;
   let destRows = '';
   if (dd && !dd.feature) {
     const regionCls = (dd.region === 'Unknown NPA') ? 'warntx' : '';
     destRows =
         row('Dialed number', r.dnid ? '<strong>' + esc(fmtNum(r.dnid)) + '</strong>' : null)
+      + row('Call scope', isIntl ? '<span class="warntx">🌐 International</span>' : 'Domestic (US/Canada)', isIntl ? '' : 'mutetx')
+      + row('Country', isIntl && r.klass.country ? '<strong>' + esc(r.klass.country) + '</strong>' + (r.klass.cc ? ' (+' + esc(r.klass.cc) + ')' : '') : (isIntl ? 'Unrecognized' : null), isIntl ? '' : 'mutetx')
       + row('E.164 format', dd.e164 ? '<span class="mono">' + esc(dd.e164) + '</span>' : (dd.cc ? esc(dd.cc) : null))
       + row('Country code', dd.cc ? esc(dd.cc === '1' ? '+1 (NANP)' : dd.cc) : null)
+      + row('Destination region', dd.region ? '<strong>' + esc(dd.regionFull || dd.region) + '</strong>' + (dd.regionFull && dd.regionFull !== dd.region ? ' <span class="mutetx">(' + esc(dd.region) + ')</span>' : '') : null, regionCls)
       + row('Area code (NPA)', dd.npa ? esc(dd.npa) : null)
-      + row('Destination region', dd.region ? '<strong>' + esc(dd.region) + '</strong>' : null, regionCls)
       + row('Exchange (NXX)', dd.nxx ? esc(dd.nxx) : null, 'mutetx')
       + row('Subscriber', dd.line ? esc(dd.line) : null, 'mutetx')
       + row('Route matched', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null);
   } else if (dd && dd.feature) {
     destRows = row('Digits', r.dnid ? esc(r.dnid) : null) + row('Type', 'Internal / feature code (not an external destination)', 'mutetx');
+  } else if (isIntl) {
+    destRows = row('Dialed number', r.dnid ? '<strong>' + esc(fmtNum(r.dnid)) + '</strong>' : null)
+      + row('Call scope', '<span class="warntx">🌐 International</span>')
+      + row('Country', r.klass.country ? '<strong>' + esc(r.klass.country) + '</strong>' + (r.klass.cc ? ' (+' + esc(r.klass.cc) + ')' : '') : 'Unrecognized country code', r.klass.country ? '' : 'warntx')
+      + row('Route matched', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null);
   } else if (r.dnid) {
     destRows = row('Dialed number', esc(fmtNum(r.dnid))) + row('Destination', 'Could not classify', 'warntx');
   }
@@ -564,14 +1003,12 @@ function render(r) {
   }
 
   h += card('Feature status',
-      row('Call recording', r.monitorActive ? '<span class="good">Active</span>' : (r.recNotStarted ? 'Not started' : '<span class="mutetx">Unknown</span>'))
-    + row('On-demand recording', r.recFormat ? '<span class="good">Armed (' + esc(r.recFormat) + ')</span>' : 'Not set')
-    + row('Recording prompts', (r.recStartMsg || r.recStopMsg) ? esc((r.recStartMsg || '—') + ' / ' + (r.recStopMsg || '—')) : 'None configured')
-    + row('Call forwarding', r.cfActive ? '<span class="warntx">Active</span>' : '<span class="good">Not active</span>')
+      row('Call recording', r.monitorActive ? '<span class="good">Active' + (r.recFormat ? ' (' + esc(r.recFormat) + ')' : '') + (r.recMp3 ? ' → MP3' : '') + '</span>' : (r.recNotStarted ? 'Not started' : '<span class="mutetx">Unknown</span>'))
+    + row('Recording file', r.mixMonitorPath ? '<span class="mono">' + esc(r.mixMonitorPath) + '</span>' : (r.recFormat ? '<span class="good">On-demand armed (' + esc(r.recFormat) + ')</span>' : null))
+    + row('Do not disturb', r.dndEnabled ? '<span class="warntx">Enabled</span>' : '<span class="mutetx">Not enabled / not in log</span>')
+    + row('Follow Me', r.followMe ? '<span class="warntx">Enabled</span>' : '<span class="mutetx">Not enabled / not in log</span>')
+    + row('Call forwarding', r.cfActive ? '<span class="warntx">Active' + (r.redirectReason ? ' (' + esc(r.redirectReason) + ')' : '') + '</span>' : '<span class="good">Not active</span>')
     + row('CF on unavailable', r.cfUnavail === false ? '<span class="good">Not set</span>' : (r.cfUnavail ? '<span class="warntx">→ ' + esc(r.cfUnavail) + '</span>' : '<span class="mutetx">Not in log</span>'))
-    + row('Do not disturb', 'Not in this log', 'mutetx')
-    + row('Phone UAD type', 'Not in this log', 'mutetx')
-    + row('gloCOM app', r.glocom ? 'Used' : 'Not used', r.glocom ? '' : 'mutetx')
     + row('Transfer', (r.attXfer ? 'Attended' : r.blindXfer ? 'Blind' : 'None') + (r.xferName ? ' by ' + esc(r.xferName) : ''), (r.attXfer || r.blindXfer) ? 'warntx' : 'mutetx')
     + row('Media', r.videoOffer === '' ? 'Audio only' : (r.videoOffer ? 'Video offered' : null)));
   h += '</div><div class="grid c2">';
@@ -595,6 +1032,70 @@ function render(r) {
     + row('Recording spool', r.recPath ? '<span class="mono">' + esc(r.recPath) + (r.recFormat ? '.' + esc(r.recFormat === 'wav49' ? 'WAV' : r.recFormat) : '') + '</span>' : null)
     + row('Fax detection', r.faxOff ? 'Disabled' : null, 'mutetx'));
   h += '</div>';
+
+  // ---- Device / UAD (what the internal user is calling on) ----
+  {
+    const d = r.device || {};
+    // The internal party whose device we care about: the extension (caller for outbound/internal, called ext for inbound)
+    const internalExt = inbound ? (r.calledExt || r.dnid) : (r.ext);
+    const knownModel = d.userAgent || d.vendor || d.glocom;
+    // Device type badge line
+    const typeVal = d.categoryLabel
+      ? '<strong>' + esc(d.categoryLabel) + '</strong>'
+      : '<span class="warntx">Unknown (not in trace)</span>';
+    // Vendor + model line
+    let makeModel = null;
+    if (d.vendor && d.model) makeModel = '<strong>' + esc(d.vendor) + ' ' + esc(d.model) + '</strong>';
+    else if (d.vendor) makeModel = '<strong>' + esc(d.vendor) + '</strong>';
+    const deviceNote = knownModel ? null
+      : 'Device type comes from the SIP User-Agent header, which this AGI trace does not carry. Capture it with <span class="mono">pjsip set logger on</span> or check the extension\u2019s UAD in the PBXware panel.';
+    h += '<div class="grid c2">';
+    h += card('Device / UAD',
+        row('Extension', internalExt ? 'Ext ' + esc(internalExt) : null)
+      + row('User (name)', r.name ? esc(r.name) : null)
+      + row('Device type', typeVal)
+      + row('Make / model', makeModel, makeModel ? '' : null)
+      + row('Model', d.model ? '<strong>' + esc(d.model) + '</strong>' : null)
+      + row('Softphone / app', d.glocom ? '<strong>gloCOM</strong> (desktop/mobile app)'
+          : (d.category === 'soft' || d.category === 'mobile' || d.category === 'web') ? '<strong>' + esc(d.vendor || 'Softphone') + '</strong>'
+          : (d.category === 'desk' ? 'No — hardware desk phone' : '<span class="mutetx">Unknown</span>'),
+          (d.glocom || d.category === 'soft' || d.category === 'mobile' || d.category === 'web') ? '' : (d.category === 'desk' ? 'mutetx' : 'mutetx'))
+      + row('Full User-Agent', d.userAgent ? '<span class="mono">' + esc(d.userAgent) + '</span>' : null, 'mutetx')
+      + row('Protocol', d.protocol ? esc(d.protocol) : null)
+      + row('Registered from', r.srcIp ? '<span class="mono">' + esc(r.srcIp) + '</span>' + (r.isPrivateIp === false ? ' <span class="warntx">(remote / internet)</span>' : (r.isPrivateIp ? ' <span class="mutetx">(LAN)</span>' : '')) : null)
+      + (deviceNote ? '<tr><td colspan="2" style="padding-top:8px;color:var(--ink-mute);font-size:12px;line-height:1.5;">' + deviceNote + '</td></tr>' : ''));
+    // small helper card explaining where to get it definitively
+    h += card('How to identify the device',
+        row('From this trace', knownModel ? '<span class="good">Identified above</span>' : '<span class="mutetx">Not present</span>', knownModel ? '' : 'mutetx')
+      + row('gloCOM signal', d.glocom ? '<span class="good">Detected — softphone app</span>' : 'Not detected', d.glocom ? '' : 'mutetx')
+      + row('SIP User-Agent', '<span class="mono">pjsip set logger on</span> → read UA header')
+      + row('PBXware panel', 'Extension → UAD field shows the assigned device')
+      + row('Live registration', '<span class="mono">pjsip show endpoint ' + esc(internalExt || '<ext>') + '</span>'));
+    h += '</div>';
+  }
+
+  // ---- Queue / call center ----
+  if (r.isQueueCall || r.viaVoiceAI) {
+    h += '<div class="grid c2">';
+    h += card(r.isQueueCall ? 'Queue / call center' : 'Call center',
+        row('Queue', r.queueName ? '<strong>' + esc(r.queueName) + '</strong>' : (r.isQueueCall ? 'Queue call' : 'Not a queue call'), (r.queueName || r.isQueueCall) ? '' : 'mutetx')
+      + row('Answered by agent', r.agent ? '<strong>' + esc(r.agent) + '</strong>' : (r.abandoned ? '<span class="warntx">Abandoned (no agent)</span>' : '<span class="mutetx">Unknown</span>'))
+      + row('Agent interface', r.agentInterface ? '<span class="mono">' + esc(r.agentInterface) + '</span>' : null, 'mutetx')
+      + row('Hold / wait time', r.queueHold != null ? esc(hms(parseInt(r.queueHold,10))) : null)
+      + row('Talk time', r.queueTalk ? esc(hms(parseInt(r.queueTalk,10))) : null)
+      + row('Queue position', r.queuePosition ? esc(r.queuePosition) : null, 'mutetx')
+      + row('Abandoned', r.abandoned ? '<span class="warntx">Yes</span>' : 'No', r.abandoned ? '' : 'mutetx'));
+    h += card('Inbound routing',
+        row('Voice AI path', r.viaVoiceAI ? '<strong>Via Telnyx voice AI</strong> → transferred back to queue' + (r.queueName ? ' (' + esc(r.queueName) + ')' : '') : 'Not routed through voice AI', r.viaVoiceAI ? '' : 'mutetx')
+      + row('AI forward number', r.voiceAINumber ? esc(fmtNum(r.voiceAINumber)) : null)
+      + row('Original DID', r.didNumber ? '<strong>' + esc(fmtNum(r.didNumber)) + '</strong>' : null)
+      + row('DID extension', r.didCalled ? esc(r.didCalled) : null)
+      + row('DID trunk', r.didTrunk ? esc(r.didTrunk) : null)
+      + row('RDNIS', r.rdnis ? esc(fmtNum(r.rdnis)) : null, 'mutetx')
+      + row('Disconnected by', r.hangupReason ? '<strong>' + esc(hrMap[r.hangupReason.toUpperCase()] || r.hangupReason) + '</strong> <span class="good" style="font-size:11px;">(HANGUP_REASON)</span>' : '<span class="mutetx">Not recorded</span>')
+      + row('Via Local channel', r.isLocalChannel ? 'Yes (forward/transfer leg)' : 'No', r.isLocalChannel ? '' : 'mutetx'));
+    h += '</div>';
+  }
 
   // ---- Operation times (business hours) ----
   {
@@ -629,7 +1130,17 @@ function render(r) {
     h += '</div>';
   }
   h += '</div>';
-  document.getElementById('out').innerHTML = h;
+  const detailsHtml = h;
+  const timelineHtml = buildTimeline(r);
+  const tabs = '<div class="view-tabs" role="group" aria-label="View">'
+    + '<button id="vt-timeline" aria-pressed="true">Timeline</button>'
+    + '<button id="vt-details" aria-pressed="false">Full details</button></div>';
+  const outEl = document.getElementById('out');
+  outEl.innerHTML = tabs + '<div id="view-timeline">' + timelineHtml + '</div><div id="view-details" style="display:none;">' + detailsHtml + '</div>';
+  const bt = document.getElementById('vt-timeline'), bd = document.getElementById('vt-details');
+  const vT = document.getElementById('view-timeline'), vD = document.getElementById('view-details');
+  bt.addEventListener('click', () => { vT.style.display=''; vD.style.display='none'; bt.setAttribute('aria-pressed','true'); bd.setAttribute('aria-pressed','false'); });
+  bd.addEventListener('click', () => { vT.style.display='none'; vD.style.display=''; bd.setAttribute('aria-pressed','true'); bt.setAttribute('aria-pressed','false'); });
 
   lastSummary = [
     'CLIR summary (' + (inbound ? 'inbound' : 'outbound') + ')',
