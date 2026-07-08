@@ -112,6 +112,10 @@ footer a { color: var(--signal); }
 .credit a:hover { text-decoration: underline; }
 .credit .li-icon { width: 18px; height: 18px; display: block; flex-shrink: 0; }
 .foot-note { font-size: 12.5px; color: var(--ink-mute); }
+.foot-corp { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.foot-corp .company { font-size: 13px; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.02em; }
+.foot-corp .conf { font-size: 11.5px; color: var(--ink-mute); margin-top: 6px; max-width: 640px; margin-left: auto; margin-right: auto; line-height: 1.55; }
+.foot-corp .conf strong { color: var(--ink-soft); font-weight: 600; }
 
 /* ---- Timeline call-detail view ---- */
 .view-tabs { display: flex; gap: 4px; margin: 0 0 14px; background: var(--paper); padding: 4px; border-radius: 10px; border: 1px solid var(--line); width: fit-content; }
@@ -183,7 +187,10 @@ footer a { color: var(--signal); }
   <div id="out" aria-live="polite"></div>
 
   <footer>
-    <div class="foot-note">CLIR Analyzer · parses PBXware AGI call traces · fields not present in a trace are reported honestly as missing.</div>
+    <div class="foot-corp">
+      <div class="company">Coeo Solutions</div>
+      <div class="conf">CLIR Analyzer · parses PBXware AGI call traces · Internal use only · Confidential · © <span id="copyright-year"></span></div>
+    </div>
     <div class="credit">
       <span>Created by</span>
       <a href="https://www.linkedin.com/in/ronmangune/" target="_blank" rel="noopener noreferrer"><svg class="li-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="4" fill="#0A66C2"/><path fill="#fff" d="M8.34 18.34H5.67V9.75h2.67v8.59zM7 8.58a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1zm11.34 9.76h-2.67v-4.18c0-1-.02-2.28-1.39-2.28-1.39 0-1.6 1.08-1.6 2.2v4.26h-2.67V9.75h2.56v1.17h.04c.36-.68 1.23-1.39 2.53-1.39 2.7 0 3.2 1.78 3.2 4.09v4.72z"/></svg>Ron Mangune</a>
@@ -1189,6 +1196,11 @@ ta.addEventListener('drop', e => {
   reader.onload = () => { ta.value = reader.result; };
   reader.readAsText(f);
 });
+// Copyright year
+(function () {
+  const y = document.getElementById('copyright-year');
+  if (y) y.textContent = new Date().getFullYear();
+})();
 </script>
 </body>
 </html>
