@@ -62,6 +62,7 @@ button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .idrow .who .name { font-weight: 600; font-size: 16px; }
 .idrow .who .meta { font-size: 13px; color: var(--ink-soft); }
 .badge { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; align-content: flex-start; flex-basis: 100%; margin-top: 4px; }
 .badge.ok { background: var(--wire-bg); color: var(--wire); border-color: var(--wire); }
 .badge.warn { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
 .badge.bad { background: var(--alert-bg); color: var(--alert); border-color: var(--alert); }
@@ -84,6 +85,46 @@ button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .warntx { color: var(--amber); font-weight: 500; }
 .badtx { color: var(--alert); font-weight: 500; }
 .mutetx { color: var(--ink-mute); }
+.legend-box { margin-top: 4px; padding: 12px 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.legend-box h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin: 0 0 10px; }
+.legend-grid { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-soft); }
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.legend-swatch.sw-good { background: var(--wire); }
+.legend-swatch.sw-warn { background: var(--amber); }
+.legend-swatch.sw-alert { background: var(--alert); }
+.legend-swatch.sw-mute { background: var(--ink-mute); }
+.legend-item .lg-badge { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid transparent; }
+.lg-badge.ok { background: var(--wire-bg); color: var(--wire); border-color: var(--wire); }
+.lg-badge.warn { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
+/* Section headers grouping the detail cards */
+.section-head { display: flex; align-items: center; gap: 10px; margin: 22px 0 10px; }
+.section-head:first-child { margin-top: 4px; }
+.section-head .sh-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink); white-space: nowrap; }
+.section-head .sh-rule { flex: 1; height: 1px; background: var(--line-strong); }
+.section-head .sh-num { width: 20px; height: 20px; border-radius: 50%; background: var(--signal-bg); color: var(--signal); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* Inline legend chip shown beside a colored value */
+.lchip { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; border: 1px solid transparent; }
+.lchip.good { background: var(--wire-bg); color: var(--wire); border-color: var(--wire); }
+.lchip.warn { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
+.lchip.alert { background: var(--alert-bg); color: var(--alert); border-color: var(--alert); }
+/* Compact inline legend key shown above the detail sections */
+.legend-key { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; margin: 4px 0 6px; }
+.legend-key .lk-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); margin-right: 4px; }
+.legend-key .lk-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+.legend-key .lk-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+.legend-key .lk-dot.good { background: var(--wire); }
+.legend-key .lk-dot.warn { background: var(--amber); }
+.legend-key .lk-dot.alert { background: var(--alert); }
+.legend-key .lk-dot.mute { background: var(--ink-mute); }
+/* Always-visible help caption under a value */
+.row-help { font-size: 10.5px; font-weight: 400; color: var(--ink-mute); line-height: 1.45; margin-top: 3px; text-align: right; text-transform: none; letter-spacing: 0; }
+/* A-leg / B-leg explanation box */
+.leg-explain { display: flex; gap: 10px; padding: 10px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); }
+.leg-explain .le-ico { flex-shrink: 0; font-size: 14px; }
+.leg-explain b { color: var(--ink); }
+.leg-explain .le-a { color: var(--signal); font-weight: 600; }
+.leg-explain .le-b { color: var(--amber); font-weight: 600; }
 .tl { margin: 4px 0 16px; }
 .tl .bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
 .tl .ring { background: var(--amber); }
@@ -686,9 +727,27 @@ function parse(t) {
 }
 function row(label, value, cls) {
   if (value === null || value === undefined || value === '') return '';
-  return '<tr><td>' + esc(label) + '</td><td class="' + (cls || '') + '">' + value + '</td></tr>';
+  // If label already contains markup (e.g. a tooltip span), don't re-escape it.
+  const lbl = /^</.test(label) ? label : esc(label);
+  return '<tr><td>' + lbl + '</td><td class="' + (cls || '') + '">' + value + '</td></tr>';
 }
 function card(title, inner) { return '<div class="card"><h3>' + esc(title) + '</h3><table>' + inner + '</table></div>'; }
+function sectionHead(num, title) { return '<div class="section-head"><span class="sh-num">' + num + '</span><span class="sh-title">' + esc(title) + '</span><span class="sh-rule"></span></div>'; }
+// inline legend chip: lchip('good','active') -> colored pill explaining the value's color
+function lchip(tone, text) { return ' <span class="lchip ' + tone + '">' + esc(text) + '</span>'; }
+// Clear, color-coded talk-time line: green value + plain-language pill + always-visible caption
+function talkTimeRow(label, seconds) {
+  if (seconds == null || seconds === '') return '';
+  const val = '<span class="good">' + esc(fmtDur(seconds)) + '</span>' + lchip('good','live conversation')
+    + '<div class="row-help">Live conversation with the client, after the call was answered. Silence / dead air within it is not measured.</div>';
+  return row(label, val);
+}
+function waitTimeRow(label, seconds) {
+  if (seconds == null || seconds === '') return '';
+  const val = '<span class="warntx">' + esc(hms(parseInt(seconds,10))) + '</span>' + lchip('warn','before answer')
+    + '<div class="row-help">Time the caller waited before answer — ringing or holding in the queue. Not conversation time.</div>';
+  return row(label, val);
+}
 function metric(label, value, sub) {
   return '<div class="metric"><div class="lbl">' + esc(label) + '</div><div class="val">' + (value || '—') + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
 }
@@ -821,29 +880,35 @@ function buildTimeline(r) {
   mid += '<div class="tl-ended">Call Ended</div></div>';
 
   // --- Call time breakdown right ---
+  const isQ = r.isQueueCall;
+  const waitLabel = isQ ? 'Wait in queue (before answer)' : 'Ring / wait (before answer)';
+  const talkLabel = 'Talk time (conversation with client)';
   let segs;
   if (talk != null && ring != null) {
     segs = [
-      { label:'Waiting (ring) duration', sec: ring, color:'#33b985' },
-      { label:'Pure talk duration', sec: talk, color:'#f0a03c' },
-      { label:'Hold duration', sec: 0, color:'#5ec7e8' }
+      { label: waitLabel, sec: ring, color:'#f0a03c' },
+      { label: talkLabel, sec: talk, color:'#33b985' }
     ];
   } else {
     // Only total elapsed is known (no ANSWEREDTIME) — show it as a single segment.
-    segs = [ { label:'Total elapsed (ring/talk split not in trace)', sec: total, color:'#8b98a3' } ];
+    segs = [ { label:'Total elapsed (wait/talk split not in trace)', sec: total, color:'#8b98a3' } ];
   }
   const segTotal = segs.reduce((a,s)=>a+s.sec,0) || 1;
   const pct = s => (Math.round(s/segTotal*10000)/100).toFixed(2);
   let right = '<div class="col"><h3>Call Time Breakdown</h3>';
   right += '<div class="cbd-metrics">'
     + '<div class="m"><div class="l">Total Duration</div><div class="v">' + hms(total) + '</div></div>'
-    + '<div class="m"><div class="l">Routing Duration</div><div class="v">' + (ring != null ? hms(ring) : '—') + '</div></div>'
-    + '<div class="m"><div class="l">Handling Duration</div><div class="v">' + (talk != null ? hms(talk) : '—') + '</div></div>'
+    + '<div class="m"><div class="l">' + (isQ ? 'Wait in Queue' : 'Ring / Wait') + '</div><div class="v">' + (ring != null ? hms(ring) : '—') + '</div></div>'
+    + '<div class="m"><div class="l">Talk Time</div><div class="v">' + (talk != null ? hms(talk) : '—') + '</div></div>'
     + '</div>';
   right += donut(segs);
   right += '<div class="cbd-legend">';
-  for (const s of segs) right += '<div class="lg"><span class="sw" style="background:' + s.color + '"></span>' + esc(s.label) + ': ' + hms(s.sec) + ', ' + pct(s.sec) + '%</div>';
-  right += '</div></div>';
+  right += '<div class="lg"><span class="sw" style="background:#33b985"></span><strong>Green</strong> = ' + esc(talkLabel) + '</div>';
+  right += '<div class="lg"><span class="sw" style="background:#f0a03c"></span><strong>Orange</strong> = ' + esc(waitLabel) + '</div>';
+  for (const s of segs) if (/Total elapsed/.test(s.label)) right += '<div class="lg"><span class="sw" style="background:' + s.color + '"></span>' + esc(s.label) + ': ' + hms(s.sec) + '</div>';
+  right += '</div>';
+  right += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-mute);line-height:1.5;">Talk time is the whole connected conversation. <strong>Dead air / silence within the call is not measured</strong> — the AGI trace only records total durations, not talk-vs-silence. Detecting dead air requires analyzing the call recording audio.</div>';
+  right += '</div>';
 
   return '<div class="tl3">' + basic + mid + right + '</div>';
 }
@@ -876,12 +941,18 @@ function render(r) {
     + '<div class="name">' + idLine + '</div>'
     + '<div class="meta">' + dirLabel + ' ' + esc(tech) + ' call'
     + (r.astVersion ? ' · Asterisk ' + esc(r.astVersion) : '') + '</div></div>';
+  h += '<div class="badges">';
   const dirBadge = internal ? '⇄ Internal' : (inbound ? '↙ Inbound' : '↗ Outbound');
   const dirStyle = (internal || inbound) ? 'background:var(--signal-bg);color:var(--signal);border-color:var(--signal);' : '';
   h += '<span class="badge" style="' + dirStyle + (dirStyle ? '' : 'background:var(--paper);') + '">' + dirBadge + '</span>';
   h += '<span class="badge ' + (answered ? 'ok' : (r.dialstatus ? 'warn' : 'mute')) + '">' + esc(r.dialstatus ? (answered ? '✓ Answered' : r.dialstatus) : 'Status unknown') + '</span>';
   h += '<span class="badge ' + (r.monitorActive ? 'ok' : 'mute') + '">' + (r.monitorActive ? '● Recorded' : '○ Not recorded') + '</span>';
-  if (r.klass && !internal) h += '<span class="badge ' + r.klass.tone + '">' + esc(r.klass.label) + '</span>';
+  if (r.klass && !internal) {
+    const isIntlCall = r.klass.intl;
+    const clsIcon = isIntlCall ? '🌐 ' : '🏠 ';
+    const clsText = isIntlCall ? ('International' + (r.klass.country ? ' · ' + r.klass.country : '')) : 'Domestic (US/Canada)';
+    h += '<span class="badge ' + (isIntlCall ? 'warn' : 'ok') + '">' + clsIcon + esc(clsText) + '</span>';
+  }
   if (r.dndEnabled) h += '<span class="badge warn">DND on</span>';
   if (r.viaVoiceAI) h += '<span class="badge" style="background:var(--signal-bg);color:var(--signal);border-color:var(--signal);">🤖 Voice AI (Telnyx)</span>';
   if (r.isQueueCall) h += '<span class="badge" style="background:var(--signal-bg);color:var(--signal);border-color:var(--signal);">☎ Queue' + (r.queueName ? ': ' + esc(r.queueName) : '') + '</span>';
@@ -895,6 +966,7 @@ function render(r) {
   if (r.isPrivateIp === false) h += '<span class="badge warn">Remote endpoint</span>';
   if (r.attXfer || r.blindXfer) h += '<span class="badge warn">Transfer leg</span>';
   if (r.toVoicemail) h += '<span class="badge warn">✉ To voicemail</span>';
+  h += '</div>';
   h += '</div>';
 
   const callerMetric = inbound
@@ -920,8 +992,29 @@ function render(r) {
       + '<div class="legend"><span>' + esc(r.startT) + ' dial</span><span>ring ' + r.ring + 's · talk ' + esc(fmtDur(r.ansTime)) + '</span><span>' + esc(r.endT) + ' hangup</span></div></div>';
   }
 
-  // ---- Two-leg breakdown: A-leg (caller/originating) and B-leg (callee/terminating) ----
-  h += '<div class="legs-head"><span class="leg-tag a">A-leg · Caller</span><span class="leg-arrow">' + (inbound ? '↙ inbound' : '↗ outbound') + '</span><span class="leg-tag b">B-leg · Callee</span></div>';
+  // ---- Color legend key (explains the colors used throughout) ----
+  h += '<div class="legend-key">'
+    + '<span class="lk-label">Legend</span>'
+    + '<span class="lk-item"><span class="lk-dot good"></span>Green = talk time / active / OK</span>'
+    + '<span class="lk-item"><span class="lk-dot warn"></span>Orange = wait time / feature enabled / attention</span>'
+    + '<span class="lk-item"><span class="lk-dot alert"></span>Red = problem / limit exceeded</span>'
+    + '<span class="lk-item"><span class="lk-dot mute"></span>Grey = not in this trace</span>'
+    + '<span class="lk-item" style="flex-basis:100%;margin-top:2px;color:var(--ink-mute);font-size:11.5px;">Talk time = live conversation with the client after answer. Wait time = ring / time in queue before answer. Dead air (silence within the call) is not measured from the trace.</span>'
+    + '</div>';
+
+  // ---- SECTION 1: Call legs (A-leg / B-leg) ----
+  h += sectionHead('1', 'Call legs — who called whom');
+  // Plain-language explanation of what A-leg and B-leg mean for THIS call's direction
+  let legExplain;
+  if (inbound) {
+    legExplain = 'An external caller dialed in. The <span class="le-a">A-leg</span> is the <b>outside caller</b> (who called in); the <span class="le-b">B-leg</span> is the <b>internal extension</b> that was rung and answered.';
+  } else if (internal) {
+    legExplain = 'This is an internal call. The <span class="le-a">A-leg</span> is the <b>extension that placed the call</b>; the <span class="le-b">B-leg</span> is the <b>extension that was called</b>.';
+  } else {
+    legExplain = 'An internal user placed an outbound call. The <span class="le-a">A-leg</span> is the <b>internal extension</b> that made the call; the <span class="le-b">B-leg</span> is the <b>external number</b> that was dialed. (This is the reverse of an inbound call.)';
+  }
+  h += '<div class="leg-explain"><span class="le-ico">💡</span><span>' + legExplain + '</span></div>';
+  h += '<div class="legs-head"><span class="leg-tag a">A-leg · ' + (inbound ? 'Caller (outside)' : internal ? 'Caller (ext)' : 'Caller (ext)') + '</span><span class="leg-arrow">' + (inbound ? '↙ inbound' : internal ? '⇄ internal' : '↗ outbound') + '</span><span class="leg-tag b">B-leg · ' + (inbound ? 'Callee (ext)' : internal ? 'Callee (ext)' : 'Callee (outside)') + '</span></div>';
   h += '<div class="grid c2">';
   const aCard = inbound
     ? card('A-leg · Caller (external)',
@@ -953,9 +1046,9 @@ function render(r) {
       + row('Dial target', r.dialTech && r.dialNum ? '<span class="mono">' + esc(r.dialTech + '/' + r.dialNum + (r.dialTrunk ? '@' + r.dialTrunk : '')) + '</span>' : null)
       + row('Route', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null)
       + row('DID database', r.didMatch ? 'Matched' : 'Not matched', 'mutetx')
-      + row('Terminated to', r.toVoicemail ? '<span class="warntx">✉ Voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : '') + '</span>' : 'Live answer / extension', r.toVoicemail ? '' : 'mutetx')
-      + row('Answer status', r.dialstatus ? esc(r.dialstatus) : null, r.dialstatus === 'ANSWER' ? 'good' : 'warntx')
-      + row('Answered time', r.ansTime ? esc(fmtDur(r.ansTime)) : null))
+      + row('Terminated to', r.toVoicemail ? '<span class="warntx">✉ Voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : '') + '</span>' + lchip('warn','went to VM') : 'Live answer / extension', r.toVoicemail ? '' : 'mutetx')
+      + row('Answer status', r.dialstatus ? esc(r.dialstatus) + (r.dialstatus === 'ANSWER' ? lchip('good','connected') : lchip('warn','not connected')) : null, r.dialstatus === 'ANSWER' ? 'good' : 'warntx')
+      + talkTimeRow('Talk time (with client)', r.ansTime))
     : card('B-leg · Callee (external)',
         row('Number dialed', r.dnid ? '<strong>' + esc(fmtNum(r.dnid)) + '</strong>' : null)
       + row('Classification', r.klass ? esc(r.klass.label) : null)
@@ -964,11 +1057,12 @@ function render(r) {
       + row('Dial target', r.dialTech && r.dialNum ? '<span class="mono">' + esc(r.dialTech + '/' + r.dialNum + '@' + (r.dialTrunk || '')) + '</span>' : null)
       + row('Route', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null)
       + row('CNAM shown to callee', 'Resolved by terminating carrier', 'mutetx')
-      + row('Terminated to', r.toVoicemail ? '<span class="warntx">✉ Voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : '') + '</span>' : 'Far-end answer', r.toVoicemail ? '' : 'mutetx')
-      + row('Answer status', r.dialstatus ? esc(r.dialstatus) : null, r.dialstatus === 'ANSWER' ? 'good' : 'warntx')
-      + row('Answered time', r.ansTime ? esc(fmtDur(r.ansTime)) : null)
+      + row('Terminated to', r.toVoicemail ? '<span class="warntx">✉ Voicemail' + (r.vmMailbox ? ' (' + esc(r.vmMailbox) + ')' : '') + '</span>' + lchip('warn','went to VM') : 'Far-end answer', r.toVoicemail ? '' : 'mutetx')
+      + row('Answer status', r.dialstatus ? esc(r.dialstatus) + (r.dialstatus === 'ANSWER' ? lchip('good','connected') : lchip('warn','not connected')) : null, r.dialstatus === 'ANSWER' ? 'good' : 'warntx')
+      + talkTimeRow('Talk time (with client)', r.ansTime)
       + row('Bill / rating', r.bill !== null ? '$' + esc(r.bill) + (r.ratingDur ? ' · ' + esc(r.ratingDur) + 's' : '') : null));
   h += aCard + bCard;
+  h += '</div>';
 
   // ---- Destination & digits dialed ----
   const dd = r.destDetail;
@@ -1003,22 +1097,28 @@ function render(r) {
     + row('AGI extension', r.agiExten ? '<span class="mono">' + esc(r.agiExten) + '</span>' : null, 'mutetx')
     + row('Post-answer DTMF', r.dtmfDigits ? '<span class="mono">' + esc(r.dtmfDigits) + '</span>' : 'None in trace', r.dtmfDigits ? '' : 'mutetx');
   if (destRows || digitRows) {
+    h += sectionHead('2', 'Destination & digits');
     h += '<div class="grid c2">';
     h += card('Destination', destRows || row('Destination', 'Not applicable', 'mutetx'));
     h += card('Digits dialed', digitRows);
     h += '</div>';
   }
 
+  // ---- SECTION 3: Features & recording ----
+  h += sectionHead('3', 'Features & recording');
+  h += '<div class="grid c2">';
   h += card('Feature status',
-      row('Call recording', r.monitorActive ? '<span class="good">Active' + (r.recFormat ? ' (' + esc(r.recFormat) + ')' : '') + (r.recMp3 ? ' → MP3' : '') + '</span>' : (r.recNotStarted ? 'Not started' : '<span class="mutetx">Unknown</span>'))
+      row('Call recording', r.monitorActive ? '<span class="good">Active' + (r.recFormat ? ' (' + esc(r.recFormat) + ')' : '') + (r.recMp3 ? ' → MP3' : '') + '</span>' + lchip('good','recording on') : (r.recNotStarted ? 'Not started' + lchip('warn','not recording') : '<span class="mutetx">Unknown</span>'))
     + row('Recording file', r.mixMonitorPath ? '<span class="mono">' + esc(r.mixMonitorPath) + '</span>' : (r.recFormat ? '<span class="good">On-demand armed (' + esc(r.recFormat) + ')</span>' : null))
-    + row('Do not disturb', r.dndEnabled ? '<span class="warntx">Enabled</span>' : '<span class="mutetx">Not enabled / not in log</span>')
-    + row('Follow Me', r.followMe ? '<span class="warntx">Enabled</span>' : '<span class="mutetx">Not enabled / not in log</span>')
-    + row('Call forwarding', r.cfActive ? '<span class="warntx">Active' + (r.redirectReason ? ' (' + esc(r.redirectReason) + ')' : '') + '</span>' : '<span class="good">Not active</span>')
+    + row('Do not disturb', r.dndEnabled ? '<span class="warntx">Enabled</span>' + lchip('warn','feature on') : '<span class="mutetx">Not enabled / not in log</span>')
+    + row('Follow Me', r.followMe ? '<span class="warntx">Enabled</span>' + lchip('warn','feature on') : '<span class="mutetx">Not enabled / not in log</span>')
+    + row('Call forwarding', r.cfActive ? '<span class="warntx">Active' + (r.redirectReason ? ' (' + esc(r.redirectReason) + ')' : '') + '</span>' + lchip('warn','feature on') : '<span class="good">Not active</span>')
     + row('CF on unavailable', r.cfUnavail === false ? '<span class="good">Not set</span>' : (r.cfUnavail ? '<span class="warntx">→ ' + esc(r.cfUnavail) + '</span>' : '<span class="mutetx">Not in log</span>'))
     + row('Transfer', (r.attXfer ? 'Attended' : r.blindXfer ? 'Blind' : 'None') + (r.xferName ? ' by ' + esc(r.xferName) : ''), (r.attXfer || r.blindXfer) ? 'warntx' : 'mutetx')
     + row('Media', r.videoOffer === '' ? 'Audio only' : (r.videoOffer ? 'Video offered' : null)));
-  h += '</div><div class="grid c2">';
+  h += '</div>';
+  h += sectionHead('4', 'Routing & channel');
+  h += '<div class="grid c2">';
   h += card('Routing',
       row('Routing mode', r.simpleRouting ? 'Simple routing' : null)
     + row('Route', r.route ? esc(r.route) + (r.routeId ? ' (ID ' + esc(r.routeId) + ')' : '') : null)
@@ -1041,6 +1141,7 @@ function render(r) {
   h += '</div>';
 
   // ---- Device / UAD (what the internal user is calling on) ----
+  h += sectionHead('5', 'Device / UAD');
   {
     const d = r.device || {};
     // The internal party whose device we care about: the extension (caller for outbound/internal, called ext for inbound)
@@ -1083,13 +1184,14 @@ function render(r) {
 
   // ---- Queue / call center ----
   if (r.isQueueCall || r.viaVoiceAI) {
+    h += sectionHead('6', 'Queue / call center & inbound routing');
     h += '<div class="grid c2">';
     h += card(r.isQueueCall ? 'Queue / call center' : 'Call center',
         row('Queue', r.queueName ? '<strong>' + esc(r.queueName) + '</strong>' : (r.isQueueCall ? 'Queue call' : 'Not a queue call'), (r.queueName || r.isQueueCall) ? '' : 'mutetx')
       + row('Answered by agent', r.agent ? '<strong>' + esc(r.agent) + '</strong>' : (r.abandoned ? '<span class="warntx">Abandoned (no agent)</span>' : '<span class="mutetx">Unknown</span>'))
       + row('Agent interface', r.agentInterface ? '<span class="mono">' + esc(r.agentInterface) + '</span>' : null, 'mutetx')
-      + row('Hold / wait time', r.queueHold != null ? esc(hms(parseInt(r.queueHold,10))) : null)
-      + row('Talk time', r.queueTalk ? esc(hms(parseInt(r.queueTalk,10))) : null)
+      + waitTimeRow('Hold / wait time', r.queueHold != null ? r.queueHold : null)
+      + talkTimeRow('Talk time (with client)', r.queueTalk)
       + row('Queue position', r.queuePosition ? esc(r.queuePosition) : null, 'mutetx')
       + row('Abandoned', r.abandoned ? '<span class="warntx">Yes</span>' : 'No', r.abandoned ? '' : 'mutetx'));
     h += card('Inbound routing',
@@ -1106,6 +1208,7 @@ function render(r) {
 
   // ---- Operation times (business hours) ----
   {
+    h += sectionHead('7', 'Operation times & capacity');
     const enabled = r.opTimesApplied;
     const statusBadge = !r.opTimesLoaded
       ? '<span class="mutetx">No operation-times evaluation in trace</span>'
